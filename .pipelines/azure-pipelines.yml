@@ -27,4 +27,4 @@ stages:
       steps:
       - task: CredScan@2
         inputs:
-          toolMajorVersion: 'V2'
+          toolMajorVersion: 'V3'
