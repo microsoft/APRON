@@ -10,4 +10,5 @@ sudo apt install -y \
 	bison \
 	flex \
 	libssl-dev \
-	libelf-dev
+	libelf-dev \
+	cargo

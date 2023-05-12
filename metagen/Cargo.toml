@@ -1,0 +1,17 @@
+[package]
+name = "apron-metagen"
+version = "0.1.0"
+author = ["Sangho <Sangho.Lee@microsoft.com>"]
+edition = "2018"
+
+[dependencies]
+sha2 = "0.9.3"
+byteorder = "1.4.3"
+
+[[bin]]
+name = "apron-diff"
+path = "src/diff.rs"
+
+[[bin]]
+name = "apron-dedup"
+path = "src/dedup.rs"
