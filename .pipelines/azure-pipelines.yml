@@ -1,0 +1,30 @@
+# Copyright (c) 2023 Microsoft Corporation.
+# Licensed under the MIT License.
+# 
+trigger: none
+
+stages:
+  - stage: build_apron
+    pool:
+      vmImage: 'ubuntu-22.04'
+    jobs:
+    - job: build_apron
+      timeoutInMinutes: 360
+      steps:
+      - script: .pipelines/prepare.sh
+        displayName: Prepare packages
+      - script: .pipelines/module.sh
+        displayName: Build kernel module 
+
+  - stage: do_credscan
+    pool:
+      vmImage: 'windows-latest'
+    jobs:
+    - job: credscan
+      variables:
+        Codeql.SkipTaskAutoInjection: true
+        skipComponentGovernanceDetection: true
+      steps:
+      - task: CredScan@2
+        inputs:
+          toolMajorVersion: 'V2'
