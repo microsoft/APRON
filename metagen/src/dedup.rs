@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+/* Copyright (C) 2023 Microsoft Corporation. */
 use byteorder::{ByteOrder, LittleEndian};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;

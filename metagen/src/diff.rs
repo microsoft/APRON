@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+/* Copyright (C) 2023 Microsoft Corporation. */
 use std::env;
 use std::fs::File;
 use std::io::prelude::*;

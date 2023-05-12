@@ -1,6 +1,6 @@
-// SPDX-License-Identifier: GPL-2.0
+// SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (C) 2021 Microsoft Corporation.
+ * Copyright (C) 2023 Microsoft Corporation.
  *
  * Author: Sangho Lee <Sangho.Lee@microsoft.com>
  *
