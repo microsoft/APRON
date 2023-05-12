@@ -14,8 +14,7 @@ pushd ${BASE_KERNEL}
 
 make defconfig
 ./scripts/kconfig/merge_config.sh .config ../.config/apron-kconfig-fragment
-make prepare
-make scripts
+make scripts prepare modules_prepare
 cp ../.config/Module.symvers .
 make M=../module -j$(nproc)
 
