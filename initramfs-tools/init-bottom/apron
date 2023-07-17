@@ -1,0 +1,67 @@
+#!/bin/sh
+
+# init-premount script for APRON.
+
+set -x
+
+PREREQS=""
+prereqs()
+{
+	echo $PREREQS
+}
+
+case $1 in
+# get pre-requisites
+prereqs)
+	prereqs
+	exit 0
+	;;
+esac
+
+parse_apron_ops ()
+{
+	for x in $(cat /proc/cmdline); do
+		case ${x} in
+		apron=*)
+			APRON="${x#apron=}"
+			;;
+		esac
+	done
+}
+
+do_apron_target ()
+{
+	OVERLAYDIR="/overlay"
+	LOWERDIR=${OVERLAYDIR}"/l"
+	UPPERDIR=${OVERLAYDIR}"/u"
+	WORKDIR=${OVERLAYDIR}"/w"
+	OVERLAYMNT="/overlaymnt"
+
+	mkdir -p ${OVERLAYDIR}
+	/bin/mount -t tmpfs tmpfs ${OVERLAYDIR}
+	mkdir -p ${LOWERDIR} ${UPPERDIR} ${WORKDIR}
+	mkdir -p ${OVERLAYMNT}
+
+	/bin/mount -r -t ext4 /dev/mapper/apron ${LOWERDIR}
+
+	/bin/mount -t overlay overlay \
+		-olowerdir=${LOWERDIR},upperdir=${UPPERDIR},workdir=${WORKDIR} ${OVERLAYMNT}
+
+	/bin/mount -n -o move ${OVERLAYMNT} ${rootmnt} || /bin/mount -n --move ${OVERLAYMNT} ${rootmnt}
+}
+
+parse_apron_ops
+
+if [ ! -n "$APRON" ]; then
+	exit 0
+fi
+
+. /scripts/functions
+
+if [ "$APRON" = "target" ]; then
+	do_apron_target
+else
+	reboot -f
+fi
+
+exit 0

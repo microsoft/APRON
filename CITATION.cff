@@ -1,0 +1,16 @@
+authors:
+  - family-names: Lee
+    given-names:  Sangho 
+    affiliation:  "Microsoft Research"
+cff-version: 1.2.0
+message: "If you use this software, please cite the following article."
+preferred-citation:
+  type: conference-paper
+  authors:
+    - family-names: Lee
+      given-names:  Sangho 
+      affiliation:  "Microsoft Research"
+  title: "APRON: Authenticated and Progressive System Image Renovation"
+  collection-title: "Proceedings of 2023 USENIX Annual Technical Conference (ATC 2023)"
+  year: 2023
+  month: 7

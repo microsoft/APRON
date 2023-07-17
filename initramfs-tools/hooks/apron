@@ -1,0 +1,36 @@
+#!/bin/sh
+
+case $1 in
+prereqs)
+	echo ""
+	exit 0
+	;;
+esac
+
+. /usr/share/initramfs-tools/hook-functions
+
+copy_exec /sbin/dmsetup
+
+copy_exec /bin/mount
+copy_exec /bin/umount
+
+# NBD
+copy_exec /usr/sbin/nbd-client
+copy_exec /usr/sbin/nbdkit
+copy_exec /lib/x86_64-linux-gnu/nbdkit/plugins/nbdkit-curl-plugin.so
+
+copy_exec /usr/sbin/kexec
+
+copy_exec /sbin/dhclient
+copy_exec /sbin/dhclient-script
+copy_exec /usr/bin/chmod
+copy_exec /usr/bin/chown
+copy_exec /usr/bin/curl
+
+manual_add_modules dm_mod
+manual_add_modules dm_bufio
+manual_add_modules dm-verity
+manual_add_modules sha256_generic
+manual_add_modules overlayfs
+manual_add_modules overlay
+manual_add_modules nbd

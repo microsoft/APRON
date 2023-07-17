@@ -1,0 +1,172 @@
+#!/bin/sh
+
+# init-premount script for APRON.
+
+set -x
+
+PREREQS=""
+prereqs()
+{
+	echo $PREREQS
+}
+
+case $1 in
+# get pre-requisites
+prereqs)
+	prereqs
+	exit 0
+	;;
+esac
+
+# TODO: use UUID
+STORAGE="/dev/sda2"
+WORKDIR="/apron"
+STATIC_CONF_FILE="apron_cfg_static.sh"
+
+parse_apron_ops ()
+{
+	for x in $(cat /proc/cmdline); do
+		case ${x} in
+		apron=*)
+			APRON="${x#apron=}"
+			;;
+		esac
+	done
+}
+
+setup_network ()
+{
+	cat > /etc/hosts << EOF
+127.0.0.1 localhost
+EOF
+
+	cat > /etc/resolv.conf << EOF
+nameserver 1.1.1.1
+nameserver 10.50.10.50
+nameserver 8.8.8.8
+EOF
+
+	mkdir -p /var/lib/dhclient
+	/sbin/dhclient $NIC || echo "error"
+}
+
+parse_apron_conf ()
+{
+	mkdir -p $WORKDIR
+	mount $STORAGE $WORKDIR
+	. ${WORKDIR}/${STATIC_CONF_FILE}
+	[ -e "${WORKDIR}/${CONF_FILE}" ] || curl --insecure $REMOTE_CONF_FILE --output ${WORKDIR}/${CONF_FILE}
+	[ ! -e "${WORKDIR}/${CONF_FILE}" ] || . ${WORKDIR}/${CONF_FILE}
+	umount $WORKDIR
+}
+
+setup_network_storage ()
+{
+	modprobe nbd
+
+	if [ -n "$NBD_HTTP" ]; then
+		if [ ${IMAGE_URL##*.} = "xz" ]; then
+			nbdkit -U ${NBD_SOCKET} -r --filter=xz curl url=${IMAGE_URL} sslverify=false
+		else
+			nbdkit -U ${NBD_SOCKET} -r curl url=${IMAGE_URL} sslverify=false tcp-keepalive=true
+		fi
+		nbd-client -b $NBD_BLOCK_SIZE --unix ${NBD_SOCKET} ${APRONDEV}
+	else
+		if [ -n "$NBD_TLS" ]; then
+			nbd-client -b $NBD_BLOCK_SIZE -tlshostname apron.com ${NBD_IP} ${APRONDEV} -p
+		else
+			nbd-client -b ${NBD_BLOCK_SIZE} ${NBD_IP} ${APRONDEV}
+		fi
+	fi
+}
+
+setup_verity_renew ()
+{
+	VERITY_PARAMS="0 $DISK_SIZE verity 1 $DEV $HASHDEV $DATA_BLOCK_SIZE $HASH_BLOCK_SIZE $NUM_DATA_BLOCKS $HASH_START_BLOCK sha256 $DIGEST $SALT"
+	if [ ! -n "$APRON_NO_NETWORK" ]; then
+		while [ ! -e $APRONDEV ] ;
+		do
+			sleep 1
+		done
+
+		VERITY_RENEW_PARAMS_SHARED="ignore_zero_blocks apron_device $APRONDEV apron_start 0"
+		if [ "$APRON" = "loader" ]; then
+			if [ -n "$NO_METADATA" ]; then
+				VERITY_RENEW_PARAMS="6 $VERITY_RENEW_PARAMS_SHARED apron_no_bgd"
+			else
+				VERITY_RENEW_PARAMS="10 $VERITY_RENEW_PARAMS_SHARED apron_no_bgd apron_meta_device $METADEV apron_meta_size $METASIZE"
+			fi
+		else
+			if [ -n "$NO_BACKGROUND" ]; then
+				if [ -n "$NO_METADATA" ]; then
+ 					VERITY_RENEW_PARAMS="6 $VERITY_RENEW_PARAMS_SHARED apron_no_bgd"
+				else
+					VERITY_RENEW_PARAMS="10 $VERITY_RENEW_PARAMS_SHARED apron_no_bgd apron_meta_device $METADEV apron_meta_size $METASIZE"
+				fi
+			else
+				if [ -n "$NO_METADATA" ]; then
+					VERITY_RENEW_PARAMS="5 $VERITY_RENEW_PARAMS_SHARED"
+				else
+					VERITY_RENEW_PARAMS="9 $VERITY_RENEW_PARAMS_SHARED apron_meta_device $METADEV apron_meta_size $METASIZE"
+				fi
+			fi
+		fi
+	else
+		VERITY_RENEW_PARAMS_PARAMS="1 ignore_zero_blocks"
+	fi
+
+
+	dmsetup create apron -r --table "$VERITY_PARAMS $VERITY_RENEW_PARAMS"
+	dmsetup table apron
+
+	export ROOT="/dev/mapper/apron"
+}
+
+do_apron_loader ()
+{
+	mkdir -p /apron-root
+	mount -r -t ext4 /dev/mapper/apron /apron-root
+
+	kexec -l /apron-root/boot/vmlinuz --initrd=/apron-root/boot/initrd.img --append "root=/dev/mapper/apron ro apron=target"
+
+	umount /apron-root
+	dmsetup remove apron
+
+	nbd-client -d ${APRONDEV}
+
+	kexec -e
+}
+
+parse_apron_ops
+
+if [ ! -n "$APRON" ]; then
+	STORAGE="/dev/sda2"
+	WORKDIR="/apron"
+	mkdir -p $WORKDIR
+	mount $STORAGE $WORKDIR
+	if [ -e "$WORKDIR/loader" ]; then
+		APRON="loader"
+		umount $WORKDIR
+	else
+		umount $WORKDIR
+		exit 0
+	fi
+fi
+
+if ([ "$APRON" != "loader" ] && ["$APRON" != "target" ]); then
+	exit 0
+fi
+
+. /scripts/functions
+
+setup_network || APRON_NO_NETWORK=true
+parse_apron_conf
+[ -n "$APRON_NO_NETWORK" ] || setup_network_storage
+setup_verity_renew
+
+if [ "$APRON" = "loader" ]; then
+	do_apron_loader
+	reboot -f
+fi
+
+exit 0
