@@ -80,7 +80,7 @@ setup_network_storage ()
 	fi
 }
 
-setup_verity_renew ()
+setup_verity_apron ()
 {
 	VERITY_PARAMS="0 $DISK_SIZE verity 1 $DEV $HASHDEV $DATA_BLOCK_SIZE $HASH_BLOCK_SIZE $NUM_DATA_BLOCKS $HASH_START_BLOCK sha256 $DIGEST $SALT"
 	if [ ! -n "$APRON_NO_NETWORK" ]; then
@@ -89,34 +89,34 @@ setup_verity_renew ()
 			sleep 1
 		done
 
-		VERITY_RENEW_PARAMS_SHARED="ignore_zero_blocks apron_device $APRONDEV apron_start 0"
+		VERITY_APRON_PARAMS_SHARED="ignore_zero_blocks apron_device $APRONDEV apron_start 0"
 		if [ "$APRON" = "loader" ]; then
 			if [ -n "$NO_METADATA" ]; then
-				VERITY_RENEW_PARAMS="6 $VERITY_RENEW_PARAMS_SHARED apron_no_bgd"
+				VERITY_APRON_PARAMS="6 $VERITY_APRON_PARAMS_SHARED apron_no_bgd"
 			else
-				VERITY_RENEW_PARAMS="10 $VERITY_RENEW_PARAMS_SHARED apron_no_bgd apron_meta_device $METADEV apron_meta_size $METASIZE"
+				VERITY_APRON_PARAMS="10 $VERITY_APRON_PARAMS_SHARED apron_no_bgd apron_meta_device $METADEV apron_meta_size $METASIZE"
 			fi
 		else
 			if [ -n "$NO_BACKGROUND" ]; then
 				if [ -n "$NO_METADATA" ]; then
- 					VERITY_RENEW_PARAMS="6 $VERITY_RENEW_PARAMS_SHARED apron_no_bgd"
+ 					VERITY_APRON_PARAMS="6 $VERITY_APRON_PARAMS_SHARED apron_no_bgd"
 				else
-					VERITY_RENEW_PARAMS="10 $VERITY_RENEW_PARAMS_SHARED apron_no_bgd apron_meta_device $METADEV apron_meta_size $METASIZE"
+					VERITY_APRON_PARAMS="10 $VERITY_APRON_PARAMS_SHARED apron_no_bgd apron_meta_device $METADEV apron_meta_size $METASIZE"
 				fi
 			else
 				if [ -n "$NO_METADATA" ]; then
-					VERITY_RENEW_PARAMS="5 $VERITY_RENEW_PARAMS_SHARED"
+					VERITY_APRON_PARAMS="5 $VERITY_APRON_PARAMS_SHARED"
 				else
-					VERITY_RENEW_PARAMS="9 $VERITY_RENEW_PARAMS_SHARED apron_meta_device $METADEV apron_meta_size $METASIZE"
+					VERITY_APRON_PARAMS="9 $VERITY_APRON_PARAMS_SHARED apron_meta_device $METADEV apron_meta_size $METASIZE"
 				fi
 			fi
 		fi
 	else
-		VERITY_RENEW_PARAMS_PARAMS="1 ignore_zero_blocks"
+		VERITY_APRON_PARAMS_PARAMS="1 ignore_zero_blocks"
 	fi
 
 
-	dmsetup create apron -r --table "$VERITY_PARAMS $VERITY_RENEW_PARAMS"
+	dmsetup create apron -r --table "$VERITY_PARAMS $VERITY_APRON_PARAMS"
 	dmsetup table apron
 
 	export ROOT="/dev/mapper/apron"
@@ -162,7 +162,7 @@ fi
 setup_network || APRON_NO_NETWORK=true
 parse_apron_conf
 [ -n "$APRON_NO_NETWORK" ] || setup_network_storage
-setup_verity_renew
+setup_verity_apron
 
 if [ "$APRON" = "loader" ]; then
 	do_apron_loader

@@ -16,8 +16,13 @@ copy_exec /bin/umount
 
 # NBD
 copy_exec /usr/sbin/nbd-client
-copy_exec /usr/sbin/nbdkit
-copy_exec /lib/x86_64-linux-gnu/nbdkit/plugins/nbdkit-curl-plugin.so
+copy_exec /usr/local/sbin/nbdkit
+for SO in $(find /usr/local/lib/nbdkit/filters/*.so); do
+	copy_exec "$SO"
+done
+for SO in $(find /usr/local/lib/nbdkit/plugins/*.so); do
+	copy_exec "$SO"
+done
 
 copy_exec /usr/sbin/kexec
 
